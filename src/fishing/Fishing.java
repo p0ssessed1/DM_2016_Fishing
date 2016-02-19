@@ -8,21 +8,94 @@ import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.Script;
 
+import dynamicArea.DynamicArea;
+import main.Timer;
+
 public class Fishing {
 
 	/* TODO - Implement different fish types. */
-	String fish;
+	String fishName;
 	SpotType spot;
-	Script script;
-	List<Area> fishingAreas = new LinkedList<Area>();
+	public Script script;
+	DynamicArea dynamicArea;
 	String action;
+
+	List<Area> fishingAreas = new LinkedList<Area>();
 	ActionFilter<NPC> actionFilter;
 	ActionFilter<NPC> AllActions = new ActionFilter("Harpoon", "Cage", "Net", "Bait", "Lure");
+	Timer t;
 
 	public Fishing(Script script) {
 		this.script = script;
+		this.dynamicArea = new DynamicArea(this);
 	}
 
+	/**
+	 * CODE SNIPPED: Optional<NPC> lobster =
+	 * getNpcs().getAll().stream().filter(o -> o.hasAction("Cage")).min(new
+	 * Comparator<NPC>() {
+	 * 
+	 * @Override public int compare(NPC a, NPC b) { return
+	 *           getMap().distance(a.getPosition()) -
+	 *           getMap().distance(b.getPosition()); } });
+	 *           if(lobster.isPresent()){ lobster.get().interact("Cage"); }
+	 */
+	
+	/**
+	 * Walk to the closest fishing area. Uses WebWalk.
+	 * 
+	 * @return True if walking is successful.
+	 * 		   False if already in area or unsuccessful.
+	 */
+	public boolean walkToArea(){
+		if (!fishingAreas.contains(script.myPlayer())) {
+			return script.getWalking().webWalk(dynamicArea.getClosestArea(fishingAreas));
+		}
+		else{
+			return false;
+		}
+	}
+	
+	/**
+	 * Attemps to fish with a timeout. Walks to nearest fishing area,
+	 * Looks for fish that has been previously set up. Attemps to fish from that location
+	 * 
+	 * @return
+	 * @throws InterruptedException
+	 */
+	public boolean fish() throws InterruptedException {
+		boolean animated = false;
+		
+		if (isInArea()) {
+			Timer local_timer = new Timer();
+			while (!local_timer.timer(30000)) {
+				NPC fishingSpot = script.getNpcs().closest(true, n -> actionFilter.match(n));
+				if (isSpotValid(fishingSpot)) {
+					List<FishAction> fishActionList = getFishFromSpot(fishingSpot);
+					if (fishActionList.contains(fishName)) {
+						fishingSpot.interact(action);
+						t.reset();
+						while (!script.myPlayer().isMoving() && !t.timer(Script.random(5000, 6000))) {
+							Script.sleep(Script.random(100, 200));
+						}
+						t.reset();
+						while (!(animated = script.myPlayer().isAnimating()) && !t.timer(Script.random(2500, 3000))) {
+							Script.sleep(Script.random(100, 200));
+						}
+						return animated;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if spot is valid as a fishing spot.
+	 * 
+	 * @param npc
+	 * @return True : Fishing spot valid. False : Not a fishing spot.
+	 */
 	public boolean isSpotValid(NPC npc) {
 		if (npc != null) {
 			if (!npc.hasAction("Attack") && AllActions.match(npc)) {
@@ -45,7 +118,7 @@ public class Fishing {
 	 * @return True : Player is in the fishing area. False: Player is not in the
 	 *         fishing area.
 	 */
-	public boolean isIn() {
+	public boolean isInArea() {
 		return fishingAreas.contains(script.myPosition());
 	}
 
@@ -68,7 +141,7 @@ public class Fishing {
 	 *            : Name of fish to fish.
 	 */
 	public void setFish(String fish) {
-		this.fish = fish;
+		this.fishName = fish;
 		setAction(getAction(fish));
 		this.spot = getSpotType(fish);
 	}
@@ -87,9 +160,9 @@ public class Fishing {
 		List<FishAction> fish_list = new LinkedList<FishAction>();
 		switch (actions[0]) {
 		case "Cage":
-			fish_list.add(new FishAction("Raw Lobster", "Cage"));
-			fish_list.add(new FishAction("Raw Swordfish", "Harpoon"));
-			fish_list.add(new FishAction("Raw Tuna", "Harpoon"));
+			fish_list.add(new FishAction("Lobster", "Cage"));
+			fish_list.add(new FishAction("Swordfish", "Harpoon"));
+			fish_list.add(new FishAction("Tuna", "Harpoon"));
 			break;
 		case "Net":
 			if (actions[1] == "Bait") {
@@ -190,15 +263,4 @@ public class Fishing {
 
 		return sType;
 	}
-
-	/**
-	 * CODE SNIPPED: Optional<NPC> lobster =
-	 * getNpcs().getAll().stream().filter(o -> o.hasAction("Cage")).min(new
-	 * Comparator<NPC>() {
-	 * 
-	 * @Override public int compare(NPC a, NPC b) { return
-	 *           getMap().distance(a.getPosition()) -
-	 *           getMap().distance(b.getPosition()); } });
-	 *           if(lobster.isPresent()){ lobster.get().interact("Cage"); }
-	 */
 }

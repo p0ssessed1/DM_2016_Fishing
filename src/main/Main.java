@@ -22,7 +22,6 @@ public class Main extends Script{
 		bank = new Banking(this);
 		fish = new Fishing(this);
 		antiban = new Antiban(this);
-		dynamicArea = new DynamicArea(this, this.fish);
 		
 		
 		
