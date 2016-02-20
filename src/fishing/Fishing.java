@@ -2,9 +2,11 @@ package fishing;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.osbot.rs07.api.filter.ActionFilter;
 import org.osbot.rs07.api.map.Area;
+import org.osbot.rs07.api.map.Position;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.script.Script;
 
@@ -14,11 +16,13 @@ import main.Timer;
 public class Fishing {
 
 	/* TODO - Implement different fish types. */
+	Random rn;
 	String fishName;
 	SpotType spot;
 	public Script script;
 	DynamicArea dynamicArea;
 	String action;
+	NPC current;
 
 	List<Area> fishingAreas = new LinkedList<Area>();
 	ActionFilter<NPC> actionFilter;
@@ -28,6 +32,30 @@ public class Fishing {
 	public Fishing(Script script) {
 		this.script = script;
 		this.dynamicArea = new DynamicArea(this);
+		rn = new Random(script.myPlayer().getId());
+		fishingAreas = dynamicArea.CreateAreas(script.getNpcs().getAll());
+	}
+
+	/**
+	 * Check if the player is fishing via a poling method. May take 2s if not
+	 * fishing.
+	 * 
+	 * @return True if fishing (animating) False otherwise
+	 * @throws InterruptedException
+	 */
+	public boolean isFishing() throws InterruptedException {
+		if (isInArea()) {
+			for (int i = 0; i < 10; i++) {
+				Script.sleep(rn.nextInt(200) + 50);
+				if (script.myPlayer().isAnimating()) {
+					return true;
+				} else if (i == 9) {
+					return false;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -40,32 +68,35 @@ public class Fishing {
 	 *           getMap().distance(b.getPosition()); } });
 	 *           if(lobster.isPresent()){ lobster.get().interact("Cage"); }
 	 */
-	
+
 	/**
 	 * Walk to the closest fishing area. Uses WebWalk.
 	 * 
-	 * @return True if walking is successful.
-	 * 		   False if already in area or unsuccessful.
+	 * @return True if walking is successful. False if already in area or
+	 *         unsuccessful.
 	 */
-	public boolean walkToArea(){
+	public boolean walkToArea() {
 		if (!fishingAreas.contains(script.myPlayer())) {
 			return script.getWalking().webWalk(dynamicArea.getClosestArea(fishingAreas));
-		}
-		else{
+		} else {
 			return false;
 		}
 	}
-	
+
 	/**
-	 * Attemps to fish with a timeout. Walks to nearest fishing area,
-	 * Looks for fish that has been previously set up. Attemps to fish from that location
+	 * Attemps to fish with a timeout. Walks to nearest fishing area, Looks for
+	 * fish that has been previously set up. Attemps to fish from that location.
 	 * 
 	 * @return
 	 * @throws InterruptedException
 	 */
 	public boolean fish() throws InterruptedException {
 		boolean animated = false;
-		
+		if (!fishingAreas.contains(script.myPlayer())) {
+			if (!walkToArea()) {
+				return false;
+			}
+		}
 		if (isInArea()) {
 			Timer local_timer = new Timer();
 			while (!local_timer.timer(30000)) {
@@ -75,12 +106,17 @@ public class Fishing {
 					if (fishActionList.contains(fishName)) {
 						fishingSpot.interact(action);
 						t.reset();
-						while (!script.myPlayer().isMoving() && !t.timer(Script.random(5000, 6000))) {
-							Script.sleep(Script.random(100, 200));
+						while (!script.myPlayer().isMoving() && !t.timer(rn.nextInt(1000) + 5000)) {
+							Script.sleep(rn.nextInt(200) + 100);
 						}
 						t.reset();
-						while (!(animated = script.myPlayer().isAnimating()) && !t.timer(Script.random(2500, 3000))) {
-							Script.sleep(Script.random(100, 200));
+						while (!(animated = script.myPlayer().isAnimating()) && !t.timer(rn.nextInt(500) + 2500)) {
+							Script.sleep(rn.nextInt(200) + 100);
+						}
+						if (animated) {
+							current = fishingSpot;
+						} else {
+							current = null;
 						}
 						return animated;
 					}
@@ -147,6 +183,63 @@ public class Fishing {
 	}
 
 	/**
+	 * Gets the next spot to fish that is not the current spot.
+	 * 
+	 * @return NPC : npc of next spot that is closest
+	 *               null if none.
+	 */
+	public NPC getNextSpot() {
+		List<NPC> npcs = script.getNpcs().getAll();
+		List<FishAction> fishActions;
+		Position myPosition = script.myPosition();
+		NPC temp1;
+		NPC temp2;
+		NPC nearest = null;
+		for(int i = 1; i < npcs.size(); i++){
+			temp1 = npcs.get(i);
+			temp2 = npcs.get(i-1);
+			if(myPosition.distance(temp1) > myPosition.distance(temp2)){
+				if (actionFilter.match(temp2)) {
+					fishActions = getFishFromSpot(temp2);
+					if (fishActions.contains(fishName)) {
+						if (temp2 != current) {
+							nearest = temp2;
+						}
+					}
+				}
+			}else{
+				if (actionFilter.match(temp1)) {
+					fishActions = getFishFromSpot(temp1);
+					if (fishActions.contains(fishName)) {
+						if (temp1 != current) {
+							nearest = temp1;
+						}
+					}
+				}
+			}
+		}
+
+		return nearest;
+	}
+	
+	public boolean clickNextFish(NPC npc) throws InterruptedException{
+		if(script.getMenuAPI().isOpen()){
+			if(script.getMenuAPI().selectAction(action)){
+				while(script.myPlayer().isMoving() && t.timer(rn.nextInt(2500)+1000)){
+					Script.sleep(100);
+				}
+				if(isFishing()){
+					current = npc;
+				} else{
+					current = null;
+				}
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Function relates the fishing spot with what fish are contained there and
 	 * what action corresponds to getting each fish.
 	 * 
@@ -177,9 +270,9 @@ public class Fishing {
 			}
 			break;
 		case "Lure":
-			fish_list.add(new FishAction("Raw Salmon", "Lure"));
-			fish_list.add(new FishAction("Raw Trout", "Lure"));
-			fish_list.add(new FishAction("Raw Pike", "Bait"));
+			fish_list.add(new FishAction("Salmon", "Lure"));
+			fish_list.add(new FishAction("Trout", "Lure"));
+			fish_list.add(new FishAction("Pike", "Bait"));
 			break;
 		}
 		return fish_list;
@@ -200,25 +293,25 @@ public class Fishing {
 		case "Lobster":
 			local_action = "Cage";
 			break;
-		case "Raw Tuna":
-		case "Raw Swordfish":
-		case "Raw Shark":
+		case "Tuna":
+		case "Swordfish":
+		case "Shark":
 			local_action = "Harpoon";
 			break;
-		case "Raw Pike":
-		case "Raw Herring":
-		case "Raw Sardines":
+		case "Pike":
+		case "Herring":
+		case "Sardines":
 			local_action = "Bait";
 			break;
-		case "Raw Trout":
-		case "Raw Salmon":
+		case "Trout":
+		case "Salmon":
 			local_action = "Lure";
 			break;
-		case "Raw Shrimps":
-		case "Raw Anchovies":
-		case "Raw Bass":
-		case "Raw Mackerel":
-		case "Raw Cod":
+		case "Shrimps":
+		case "Anchovies":
+		case "Bass":
+		case "Mackerel":
+		case "Cod":
 			local_action = "Net";
 			break;
 		}
