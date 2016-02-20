@@ -50,4 +50,9 @@ public class DynamicArea {
 		}
 		return closestArea;
 	}
+	
+	public boolean addExclusiveAreas(List<NPC> spots){
+		/* TODO - create method to add exclusive areas. */
+		return true;
+	}
 }
