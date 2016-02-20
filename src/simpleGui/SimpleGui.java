@@ -132,9 +132,17 @@ public class SimpleGui implements ActionListener {
 			bankPanel.add(b);
 		}
 
-		for (Item i : script.getInventory().getItems()) {
+		Item[] inv = script.getInventory().getItems();
+		List<String> exclusiveInv = new LinkedList<String>();
+		for(Item i: inv){
+			if(!exclusiveInv.contains(i.getName())){
+				exclusiveInv.add(i.getName());
+			}
+		}
+		
+		for (String i : exclusiveInv) {
 			if (i != null) {
-				keep.add(new JCheckBox(i.getName()));
+				keep.add(new JCheckBox(i));
 			}
 		}
 
