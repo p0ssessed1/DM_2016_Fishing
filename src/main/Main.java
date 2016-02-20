@@ -15,7 +15,7 @@ import dynamicArea.DynamicArea;
 import fishing.Fishing;
 import simpleGui.SimpleGui;
 
-@ScriptManifest(author = "EmbeddedJ", info = "Dynamic Fisher", name = "Beta Dynamic Fisher v0.1", version = .1, logo = "")
+@ScriptManifest(author = "EmbeddedJ", info = "Dynamic Fisher", name = "Beta Dynamic Fisher v0.3", version = .3, logo = "")
 public class Main extends Script {
 	Banking bank;
 	Fishing fish;

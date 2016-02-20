@@ -40,8 +40,8 @@ public class SimpleGui implements ActionListener {
 	final Area LUMBRIDGE = new Area(new Position(3208, 3220, 2), new Position(3209, 3218, 2));
 	final Area EDGEVILLE = new Area(new Position(3094, 3489, 0), new Position(3092, 3495, 0));
 	final Area[] BANKS = { DRAYNOR, EAST_FALLY, WEST_FALLY, EAST_VARROCK, WEST_VARROCK, LUMBRIDGE, EDGEVILLE };
-	final List<String> BANK_NAMES = new LinkedList<String>(Arrays.asList("Draynor", "East Falador", "West Falador", "East Varrock", "West Varrock",
-			"Lumbridge", "Edgeville"));
+	final List<String> BANK_NAMES = new LinkedList<String>(Arrays.asList("Draynor", "East Falador", "West Falador",
+			"East Varrock", "West Varrock", "Lumbridge", "Edgeville"));
 	final String[] fishing_actions = { "Cage", "Net", "Lure", "Bait", "Harpoon" };
 	final ActionFilter<NPC> af = new ActionFilter(fishing_actions);
 
@@ -90,10 +90,10 @@ public class SimpleGui implements ActionListener {
 							spot_actions = n.getActions();
 							if (!fa.contains(spot_actions[0]) || !fa.contains(spot_actions[1])) {
 								script.log("Got here. fish.getFishFromSpot = " + fish.getFishFromSpot(i));
-								if(!fa.contains(fish.getFishFromSpot(i))){
+								if (!fa.contains(fish.getFishFromSpot(i))) {
 									fa.addAll(fish.getFishFromSpot(i));
 								}
-								
+
 							}
 						}
 					}
@@ -108,8 +108,15 @@ public class SimpleGui implements ActionListener {
 		bankPanel.add(new Label("Drop if none"));
 		JPanel optionPanel = new JPanel(new GridLayout(0, 2));
 		optionPanel.add(new Label("Keep Items:"));
-		for (int i = 0; i<fa.size(); i++ ) {
-				fishingOptions.add(new JRadioButton(fa.get(i).fish));
+		List<String> fishNames = new LinkedList<String>();
+		for (FishAction f : fa) {
+			if (!fishNames.contains(f.fish)) {
+				fishNames.add(f.fish);
+			}
+		}
+
+		for (String s: fishNames) {
+			fishingOptions.add(new JRadioButton(s));
 		}
 		for (JRadioButton b : fishingOptions) {
 			bg_f.add(b);
@@ -126,7 +133,7 @@ public class SimpleGui implements ActionListener {
 		}
 
 		for (Item i : script.getInventory().getItems()) {
-			if(i != null){
+			if (i != null) {
 				keep.add(new JCheckBox(i.getName()));
 			}
 		}
@@ -171,23 +178,23 @@ public class SimpleGui implements ActionListener {
 		try {
 			String[] to_keep = new String[keep.size()];
 			JCheckBox local;
-			for (int i = 0; i< keep.size() ; i++) {
+			for (int i = 0; i < keep.size(); i++) {
 				local = keep.get(i);
-				if(local.isSelected()){
+				if (local.isSelected()) {
 					to_keep[i] = local.getText();
 				}
 			}
 			keepItems = new NameFilter<Item>(to_keep);
 			bank.setKeepItems(keepItems);
 			String selectedBank = null;
-			for(JRadioButton b: banks){
-				if(b.isSelected()){
+			for (JRadioButton b : banks) {
+				if (b.isSelected()) {
 					selectedBank = b.getText();
 				}
 			}
 			String selectedFish = null;
-			for(JRadioButton f: fishingOptions){
-				if(f.isSelected()){
+			for (JRadioButton f : fishingOptions) {
+				if (f.isSelected()) {
 					selectedFish = f.getText();
 				}
 			}
@@ -199,6 +206,5 @@ public class SimpleGui implements ActionListener {
 			script.log("Exception in actionPerformed." + e);
 		}
 	}
-	
-	
+
 }
