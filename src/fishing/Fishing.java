@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.osbot.rs07.api.filter.ActionFilter;
+import org.osbot.rs07.api.filter.NameFilter;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.map.Position;
 import org.osbot.rs07.api.model.NPC;
@@ -23,17 +24,23 @@ public class Fishing {
 	DynamicArea dynamicArea;
 	String action;
 	NPC current;
+	FishAction fishAction;
 
 	List<Area> fishingAreas = new LinkedList<Area>();
 	ActionFilter<NPC> actionFilter;
 	ActionFilter<NPC> AllActions = new ActionFilter("Harpoon", "Cage", "Net", "Bait", "Lure");
-	Timer t;
+	NameFilter<NPC> fishingSpot = new NameFilter("Fishing spot");
+	Timer t = new Timer();
 
 	public Fishing(Script script) {
 		this.script = script;
 		this.dynamicArea = new DynamicArea(this);
 		rn = new Random(script.myPlayer().getId());
 		fishingAreas = dynamicArea.CreateAreas(script.getNpcs().getAll());
+		if(fishingAreas.isEmpty()){
+			script.log("No fishing areas retrieved.");
+			script.stop(false);
+		}
 	}
 
 	/**
@@ -45,11 +52,11 @@ public class Fishing {
 	 */
 	public boolean isFishing() throws InterruptedException {
 		if (isInArea()) {
-			for (int i = 0; i < 10; i++) {
+			for (int i = 0; i < 15; i++) {
 				Script.sleep(rn.nextInt(200) + 50);
 				if (script.myPlayer().isAnimating()) {
 					return true;
-				} else if (i == 9) {
+				} else if (i == 14) {
 					return false;
 				}
 			}
@@ -77,6 +84,8 @@ public class Fishing {
 	 */
 	public boolean walkToArea() {
 		if (!fishingAreas.contains(script.myPlayer())) {
+			script.log("Fishing aeas is empty?" + fishingAreas.isEmpty());
+			script.log("closest areas is null? " + (dynamicArea.getClosestArea(fishingAreas) == null));
 			return script.getWalking().webWalk(dynamicArea.getClosestArea(fishingAreas));
 		} else {
 			return false;
@@ -92,25 +101,39 @@ public class Fishing {
 	 */
 	public boolean fish() throws InterruptedException {
 		boolean animated = false;
-		if (!fishingAreas.contains(script.myPlayer())) {
+		for(Area a: fishingAreas){
+		if (!a.contains(script.myPlayer())) {
 			if (!walkToArea()) {
 				return false;
 			}
 		}
+		}
 		if (isInArea()) {
 			Timer local_timer = new Timer();
-			while (!local_timer.timer(30000)) {
+			while (local_timer.timer(30000)) {
 				NPC fishingSpot = script.getNpcs().closest(true, n -> actionFilter.match(n));
 				if (isSpotValid(fishingSpot)) {
+					//script.log("Validated Fishing Spots");
 					List<FishAction> fishActionList = getFishFromSpot(fishingSpot);
-					if (fishActionList.contains(fishName)) {
+					boolean contained = false;
+					//script.log("Searching for fish: " + fishName);
+					for(FishAction fa: fishActionList){
+						//script.log("Fish Found: " + fa.fish);
+						if(fa.fish == fishName){
+							//script.log("Found fish.");
+							contained = true;
+							break;
+						}
+					}
+					if (contained) {
+						//script.log("About to interract.");
 						fishingSpot.interact(action);
 						t.reset();
-						while (!script.myPlayer().isMoving() && !t.timer(rn.nextInt(1000) + 5000)) {
+						while (!script.myPlayer().isMoving() && t.timer(rn.nextInt(1000) + 5000)) {
 							Script.sleep(rn.nextInt(200) + 100);
 						}
 						t.reset();
-						while (!(animated = script.myPlayer().isAnimating()) && !t.timer(rn.nextInt(500) + 2500)) {
+						while (!(animated = script.myPlayer().isAnimating()) && t.timer(rn.nextInt(500) + 2500)) {
 							Script.sleep(rn.nextInt(200) + 100);
 						}
 						if (animated) {
@@ -134,7 +157,7 @@ public class Fishing {
 	 */
 	public boolean isSpotValid(NPC npc) {
 		if (npc != null) {
-			if (!npc.hasAction("Attack") && AllActions.match(npc)) {
+			if (!npc.hasAction("Attack") && AllActions.match(npc) && fishingSpot.match(npc)) {
 				int id = npc.getId();
 				if (id != -1) {
 					for (NPC i : script.getNpcs().get(npc.getX(), npc.getY())) {
@@ -155,7 +178,12 @@ public class Fishing {
 	 *         fishing area.
 	 */
 	public boolean isInArea() {
-		return fishingAreas.contains(script.myPosition());
+		for(Area a: fishingAreas){
+			if(a.contains(script.myPosition())){
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -180,6 +208,7 @@ public class Fishing {
 		this.fishName = fish;
 		setAction(getAction(fish));
 		this.spot = getSpotType(fish);
+		fishAction = new FishAction(fish,action);
 	}
 
 	/**
@@ -258,12 +287,12 @@ public class Fishing {
 			fish_list.add(new FishAction("Tuna", "Harpoon"));
 			break;
 		case "Net":
-			if (actions[1] == "Bait") {
+			if (spot.hasAction("Bait")) {
 				fish_list.add(new FishAction("Anchovies", "Net"));
 				fish_list.add(new FishAction("Shrimp", "Net"));
 				fish_list.add(new FishAction("Sardines", "Bait"));
 				fish_list.add(new FishAction("Herring", "Bait"));
-			} else if (actions[1] == "Harpoon") {
+			} else if (spot.hasAction("Harpoon")) {
 				fish_list.add(new FishAction("Shark", "Harpoon"));
 				fish_list.add(new FishAction("Mackerel", "Net"));
 				fish_list.add(new FishAction("Bass", "Net"));

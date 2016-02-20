@@ -1,5 +1,6 @@
 package dynamicArea;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,13 +21,14 @@ public class DynamicArea {
 
 	public List<Area> CreateAreas(List<NPC> spots) {
 		List<Area> areas = new LinkedList<Area>();
-
 		for (NPC n : spots) {
 			if (fish.isSpotValid(n)) {
+				fish.script.log("Added area to return: " + n.getArea(MAX_AREA_SIZE));
 				areas.add(n.getArea(MAX_AREA_SIZE));
 			}
 		}
-
+		
+		fish.script.log("is areas empty?." + areas.isEmpty());
 		return areas;
 	}
 	
@@ -38,7 +40,7 @@ public class DynamicArea {
 	public Area getClosestArea(List<Area> areas) {
 		Position myPosition = fish.script.myPlayer().getPosition();
 		Position tryPosition = areas.get(0).getRandomPosition();
-		Area closestArea = null;
+		Area closestArea = areas.get(0);
 		
 		for(Area a: areas)
 		{

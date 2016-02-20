@@ -89,7 +89,11 @@ public class SimpleGui implements ActionListener {
 						if (i.getId() == id) {
 							spot_actions = n.getActions();
 							if (!fa.contains(spot_actions[0]) || !fa.contains(spot_actions[1])) {
-								fa.addAll(fish.getFishFromSpot(i));
+								script.log("Got here. fish.getFishFromSpot = " + fish.getFishFromSpot(i));
+								if(!fa.contains(fish.getFishFromSpot(i))){
+									fa.addAll(fish.getFishFromSpot(i));
+								}
+								
 							}
 						}
 					}
@@ -105,7 +109,7 @@ public class SimpleGui implements ActionListener {
 		JPanel optionPanel = new JPanel(new GridLayout(0, 2));
 		optionPanel.add(new Label("Keep Items:"));
 		for (int i = 0; i<fa.size(); i++ ) {
-			fishingOptions.add(new JRadioButton(fa.get(i).fish));
+				fishingOptions.add(new JRadioButton(fa.get(i).fish));
 		}
 		for (JRadioButton b : fishingOptions) {
 			bg_f.add(b);
@@ -121,8 +125,10 @@ public class SimpleGui implements ActionListener {
 			bankPanel.add(b);
 		}
 
-		for (Item i : script.inventory.getItems()) {
-			keep.add(new JCheckBox(i.getName()));
+		for (Item i : script.getInventory().getItems()) {
+			if(i != null){
+				keep.add(new JCheckBox(i.getName()));
+			}
 		}
 
 		for (JCheckBox b : keep) {
@@ -155,6 +161,7 @@ public class SimpleGui implements ActionListener {
 			while (!start) {
 				Script.sleep(100);
 			}
+			frame.dispose();
 		}
 		return setUp;
 	}
@@ -172,13 +179,24 @@ public class SimpleGui implements ActionListener {
 			}
 			keepItems = new NameFilter<Item>(to_keep);
 			bank.setKeepItems(keepItems);
-			JRadioButton selected_bank = (JRadioButton) bg_b.getSelection();
-			JRadioButton selected_fish = (JRadioButton) bg_f.getSelection();
-			bank.setArea(BANKS[BANK_NAMES.indexOf(selected_bank.getText())]);
-			fish.setFish(selected_fish.getText());
+			String selectedBank = null;
+			for(JRadioButton b: banks){
+				if(b.isSelected()){
+					selectedBank = b.getText();
+				}
+			}
+			String selectedFish = null;
+			for(JRadioButton f: fishingOptions){
+				if(f.isSelected()){
+					selectedFish = f.getText();
+				}
+			}
+			bank.setArea(BANKS[BANK_NAMES.indexOf(selectedBank)]);
+			fish.setFish(selectedFish);
+			script.log("Changing start.");
 			start = true;
 		} catch (Exception e) {
-
+			script.log("Exception in actionPerformed." + e);
 		}
 	}
 	

@@ -20,7 +20,7 @@ public class Banking {
 	NameFilter<Item> keepItems;
 
 	Area bankArea;
-	Timer t;
+	Timer t = new Timer();
 
 	public Banking(Script script) {
 		this.script = script;
@@ -74,31 +74,42 @@ public class Banking {
 		return null;
 	}
 
-	public boolean bank() {
+	public boolean bank() throws InterruptedException {
 		boolean isOpen = false;
 		if (!bankArea.contains(script.myPlayer())) {
 			if (!walkToArea()) {
+				script.log("Could not walk to area.");
 				return false;
 			}
 		}
-
-		if (script.random(0, 1) == 0) {
-			NPC banker = getBanker();
-			banker.interact("Bank");
-		} else {
-			RS2Object bank = getBankBooth();
-			bank.interact("Bank");
+		t.reset();
+		while(t.timer(10000)){
+			if (Script.random(0, 1) == 0) {
+				NPC banker = getBanker();
+				if(banker!= null){
+					banker.interact("Bank");
+					break;
+				}
+			} else {
+				RS2Object bank = getBankBooth();
+				if(bank != null){
+					bank.interact("Bank");
+					break;
+				}
+			}
 		}
 		t.reset();
-		while (!(isOpen = script.getBank().isOpen()) && !t.timer(rn.nextInt(2000) + 1000))
+		while (!(isOpen = script.getBank().isOpen()) && t.timer(rn.nextInt(2000) + 1000))
 			;
 		if (!isOpen) {
+			script.log("Could not open bank.");
 			return false;
 		}
-
+		script.sleep(rn.nextInt(1000) + 250);
 		if (script.getBank().depositAllExcept(keepItems)) {
 			return true;
 		} else {
+			script.log("Could not deposit all.");
 			return false;
 		}
 	}

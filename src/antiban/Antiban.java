@@ -20,7 +20,7 @@ public class Antiban {
 	Random rn;
 	Script script;
 	Fishing fish;
-	Timer t;
+	Timer t = new Timer();
 
 	public Antiban(Script script, Fishing fish) {
 		this.script = script;
@@ -41,28 +41,35 @@ public class Antiban {
 		case 0:
 		case 1:
 			/* Move Mouse */
+			script.log("Move Mouse.");
 			return moveMouse();
 		case 2:
 			/* Move Camera */
+			script.log("Move Camera.");
 			return moveCamera();
 		case 3:
 			/* Right Click Hover */
+			script.log("Right Click.");
 			return rightClickNext();
 		case 4:
 			/* Move Camera */
+			script.log("Move Camera.");
 			moveCamera();
 		case 5:
 			/* Move Mouse */
+			script.log("Move Mouse.");
 			return moveMouse();
 		case 6:
 		case 7:
 			/* Sleep until 1s after done fishing. */
+			script.log("Sleep.");
 			while (fish.isFishing()) {
 				Script.sleep(rn.nextInt(100) + 100);
 			}
 			return true;
 		case 8:
 			/* Hover Fishing. */
+			script.log("Check XP.");
 			if(hoverFishing()){
 				while (fish.isFishing()) {
 					Script.sleep(rn.nextInt(100) + 100);
@@ -72,6 +79,7 @@ public class Antiban {
 			}
 			return false;
 		case 9:
+			script.log("Check XP & move mouse.");
 			if(hoverFishing()){
 				Script.sleep(rn.nextInt(900)+500);
 				return moveMouse();
@@ -97,7 +105,7 @@ public class Antiban {
 			}
 			t.reset();
 			while (script.getCamera().getPitchAngle() < camera_end_val && !script.getBot().isHumanInputEnabled() &&
-					!t.timer(2000)) {
+					t.timer(2000)) {
 			}
 			script.getKeyboard().releaseKey(UP_KEY);
 			script.getKeyboard().releaseKey(LEFT_KEY);
@@ -130,7 +138,7 @@ public class Antiban {
 
 			script.getMouse().click(targetDest, true);
 			t.reset();
-			while (!script.getMenuAPI().isOpen() && !t.timer(rn.nextInt(1000)+150)) {
+			while (!script.getMenuAPI().isOpen() && t.timer(rn.nextInt(1000)+150)) {
 				Script.sleep(50);
 			}
 		} else {
@@ -140,7 +148,7 @@ public class Antiban {
 
 				script.getMouse().click(targetDest, true);
 				t.reset();
-				while (!script.getMenuAPI().isOpen() && !t.timer(rn.nextInt(1000)+150)) {
+				while (!script.getMenuAPI().isOpen() && t.timer(rn.nextInt(1000)+150)) {
 					Script.sleep(50);
 				}
 			}
