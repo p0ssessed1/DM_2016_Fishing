@@ -53,8 +53,23 @@ public class DynamicArea {
 		return closestArea;
 	}
 	
-	public boolean addExclusiveAreas(List<NPC> spots){
+	public boolean addExclusiveAreas(List<NPC> spots, List<Area> currentAreas){
 		/* TODO - create method to add exclusive areas. */
-		return true;
+		List<Area> areas = new LinkedList<Area>();
+		areas = currentAreas;
+		boolean added = false;
+		List<Position> currentAreaPositions = new LinkedList<Position>();
+		for (int i = 0; i < spots.size(); i++) {
+			if (fish.isSpotValid(spots.get(i))) {
+				currentAreaPositions = currentAreas.get(i).getPositions();
+				if(currentAreaPositions.contains(spots.get(i).getPosition())){
+					fish.script.log("Added area: " + spots.get(i).getArea(MAX_AREA_SIZE));
+					areas.add(spots.get(i).getArea(MAX_AREA_SIZE));
+					added = true;
+				}
+			}
+		}
+		
+		return added;
 	}
 }
